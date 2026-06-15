@@ -307,6 +307,7 @@
   }
   .setup-box h3{margin-top:0;color:var(--maroon);}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -338,6 +339,10 @@
     <h2>Room Management</h2>
 
     <div class="summary-row" id="roomSummary"></div>
+
+    <div style="text-align:right;margin-bottom:10px;">
+      <button class="btn btn-green" onclick="downloadRoomsPDF()">Download Guest List (PDF)</button>
+    </div>
 
     <div class="card">
       <strong id="roomFormTitle">Add Person to a Room</strong>
@@ -763,8 +768,111 @@ function renderRooms(){
   list.innerHTML = html;
 }
 
-/* ---------------- VENDORS ---------------- */
-function resetVendorForm(){
+/* ---------------- PDF EXPORT ---------------- */
+function downloadRoomsPDF(){
+  if(typeof window.jspdf === 'undefined'){
+    alert('PDF library did not load. Please check your internet connection and try again.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 40;
+  let y = 50;
+
+  // Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(122, 46, 60); // maroon
+  doc.text('Wedding Guest Room List', pageWidth / 2, y, { align: 'center' });
+  y += 20;
+
+  doc.setFontSize(10);
+  doc.setTextColor(120, 110, 96);
+  doc.setFont('helvetica', 'normal');
+  const now = new Date();
+  doc.text('Generated: ' + now.toLocaleDateString() + ' ' + now.toLocaleTimeString(), pageWidth / 2, y, { align: 'center' });
+  y += 25;
+
+  // Group members by room
+  const roomsMap = {};
+  DATA.members.forEach(m=>{
+    if(!roomsMap[m.roomNo]) roomsMap[m.roomNo] = [];
+    roomsMap[m.roomNo].push(m);
+  });
+  const roomNos = Object.keys(roomsMap).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+
+  if(roomNos.length === 0){
+    doc.setFontSize(12);
+    doc.setTextColor(60,60,60);
+    doc.text('No rooms added yet.', margin, y);
+    doc.save('wedding-guest-room-list.pdf');
+    return;
+  }
+
+  const lineHeight = 14;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  roomNos.forEach(roomNo=>{
+    const members = roomsMap[roomNo];
+    const roomSize = members.find(m=>m.roomSize)?.roomSize || '';
+
+    // estimate space needed; if not enough, new page
+    const neededHeight = 24 + members.length * (lineHeight * 2 + 4) + 10;
+    if(y + neededHeight > pageHeight - margin){
+      doc.addPage();
+      y = 50;
+    }
+
+    // Room header
+    doc.setFillColor(242, 224, 187); // gold-light
+    doc.rect(margin, y - 12, pageWidth - margin*2, 20, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(122, 46, 60);
+    let roomTitle = 'Room ' + roomNo;
+    if(roomSize) roomTitle += '   (Size: ' + roomSize + ')';
+    roomTitle += '   -  ' + members.length + (members.length===1 ? ' person' : ' people');
+    doc.text(roomTitle, margin + 6, y + 2);
+    y += 20;
+
+    // Members
+    members.forEach(m=>{
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(51, 40, 42);
+      doc.text(m.name || '', margin + 10, y);
+      y += lineHeight;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(110, 100, 90);
+      let details = '';
+      if(m.phone) details += 'Phone: ' + m.phone;
+      if(m.address) details += (details ? '   |   ' : '') + 'Address: ' + m.address;
+      if(details){
+        const wrapped = doc.splitTextToSize(details, pageWidth - margin*2 - 20);
+        doc.text(wrapped, margin + 14, y);
+        y += lineHeight * wrapped.length;
+      } else {
+        y += 2;
+      }
+
+      // page break check between members
+      if(y > pageHeight - margin){
+        doc.addPage();
+        y = 50;
+      }
+    });
+
+    y += 8; // gap between rooms
+  });
+
+  doc.save('wedding-guest-room-list.pdf');
+}
+
+
   document.getElementById('v_editId').value = '';
   document.getElementById('v_name').value = '';
   document.getElementById('v_cat').value = '';
