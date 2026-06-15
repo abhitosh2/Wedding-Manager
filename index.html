@@ -438,7 +438,7 @@
       <h3>Connect to Google Sheet</h3>
       <p>Paste the Web App URL from your Google Apps Script deployment below. All rooms, vendors and to-do items will be saved to that Google Sheet so everyone using this link sees the same data.</p>
       <label>Apps Script Web App URL</label>
-      <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/AKfycbyJ9ehaZ_FlUxa_B3LasLg0heygXqUj76eEwBfyLrowwFX-4jTCQ2L5SvUug7iUtz-IRw/exec">
+      <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
       <button class="btn btn-primary" onclick="saveScriptUrl()">Save &amp; Connect</button>
       <p class="hint" id="connHint"></p>
     </div>
@@ -476,6 +476,8 @@
 /* ---------------- STORAGE ---------------- */
 const STORE_KEY = 'weddingManagerData_v2';
 const URL_KEY = 'weddingManagerScriptUrl';
+// Default Apps Script Web App URL - used if no URL is saved in this browser yet
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJ9ehaZ_FlUxa_B3LasLg0heygXqUj76eEwBfyLrowwFX-4jTCQ2L5SvUug7iUtz-IRw/exec';
 
 function loadData(){
   try{
@@ -495,7 +497,7 @@ if(!DATA.todos) DATA.todos = [];
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-let SCRIPT_URL = localStorage.getItem(URL_KEY) || '';
+let SCRIPT_URL = localStorage.getItem(URL_KEY) || DEFAULT_SCRIPT_URL;
 document.getElementById('scriptUrl').value = SCRIPT_URL;
 
 /* ---------------- TABS ---------------- */
