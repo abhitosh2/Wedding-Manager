@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wedding Manager</title>
+<style>
+  :root{
+    --cream:#FBF6EF;
+    --maroon:#7A2E3C;
+    --gold:#C8902E;
+    --gold-light:#F2E0BB;
+    --ink:#33282A;
+    --line:#E6D9C8;
+    --green:#5C7A4F;
+    --red:#B5453B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Tahoma, Verdana, sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  header{
+    background:linear-gradient(135deg,var(--maroon),#9b3f4f);
+    color:#fff;
+    padding:18px 16px 14px;
+    text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+    position:relative;
+  }
+  header h1{
+    margin:0;
+    font-size:1.4rem;
+    letter-spacing:1px;
+    font-family:Georgia, 'Times New Roman', serif;
+  }
+  header p{
+    margin:4px 0 0;
+    font-size:0.78rem;
+    opacity:0.85;
+    letter-spacing:2px;
+    text-transform:uppercase;
+  }
+  #syncStatus{
+    margin-top:8px;
+    font-size:0.75rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+  }
+  #syncStatus .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:#9be09b;
+    display:inline-block;
+  }
+  #syncStatus .dot.bad{background:#e09b9b;}
+  #syncStatus .dot.busy{background:#e0d39b;}
+  #syncStatus button{
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.4);
+    color:#fff;
+    border-radius:5px;
+    padding:3px 9px;
+    font-size:0.72rem;
+    cursor:pointer;
+    margin-left:6px;
+  }
+  nav{
+    display:flex;
+    overflow-x:auto;
+    background:#fff;
+    border-bottom:2px solid var(--gold-light);
+    position:sticky;
+    top:0;
+    z-index:50;
+  }
+  nav button{
+    flex:1;
+    min-width:90px;
+    padding:12px 6px;
+    background:none;
+    border:none;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  nav button.active{
+    color:var(--maroon);
+    border-bottom:3px solid var(--gold);
+    background:var(--gold-light);
+  }
+  main{
+    padding:14px;
+    max-width:900px;
+    margin:0 auto;
+    padding-bottom:60px;
+  }
+  .tab{display:none;}
+  .tab.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  h2{
+    font-family:Georgia, 'Times New Roman', serif;
+    color:var(--maroon);
+    margin:6px 0 12px;
+    font-size:1.25rem;
+    border-bottom:2px solid var(--gold-light);
+    padding-bottom:6px;
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.04);
+  }
+  label{
+    display:block;
+    font-size:0.78rem;
+    font-weight:600;
+    color:var(--maroon);
+    margin-bottom:4px;
+    margin-top:10px;
+  }
+  input, select, textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-size:0.95rem;
+    background:#fffdf9;
+    color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:2px solid var(--gold);
+    border-color:var(--gold);
+  }
+  .row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .row > div{flex:1;min-width:120px;}
+  .btn{
+    display:inline-block;
+    padding:10px 18px;
+    border:none;
+    border-radius:6px;
+    font-size:0.9rem;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:14px;
+    transition:opacity .15s;
+  }
+  .btn:active{opacity:0.7;}
+  .btn:disabled{opacity:0.5;cursor:default;}
+  .btn-primary{background:var(--maroon);color:#fff;}
+  .btn-secondary{background:var(--gold-light);color:var(--maroon);}
+  .btn-danger{background:var(--red);color:#fff;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-small{padding:6px 12px;font-size:0.8rem;margin-top:0;}
+
+  .search-bar{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .search-bar input, .search-bar select{flex:1;min-width:140px;}
+
+  .room-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-left:5px solid var(--gold);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:10px;
+  }
+  .room-card .room-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .room-card .room-head strong{
+    color:var(--maroon);
+    font-size:1.05rem;
+  }
+  .badge{
+    background:var(--gold-light);
+    color:var(--maroon);
+    padding:2px 9px;
+    border-radius:12px;
+    font-size:0.75rem;
+    font-weight:700;
+  }
+  .room-card .members{
+    margin-top:6px;
+    font-size:0.88rem;
+  }
+  .member-line{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:5px 0;
+    border-top:1px dashed var(--line);
+    gap:8px;
+  }
+  .member-line:first-of-type{border-top:none;}
+  .member-info{flex:1;}
+  .member-info .name{font-weight:600;}
+  .member-info .meta{color:#7a6e60;font-size:0.78rem;}
+  .empty-msg{
+    color:#9a8c7c;
+    font-style:italic;
+    font-size:0.85rem;
+    padding:8px 0;
+  }
+
+  .pdf-item, .vendor-item, .todo-item{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .pdf-item .pname{font-weight:600;}
+  .vendor-item .vname{font-weight:600;color:var(--maroon);}
+  .vendor-item .vcat{font-size:0.78rem;color:#7a6e60;}
+  a.pdf-link{
+    color:var(--maroon);
+    font-weight:600;
+    text-decoration:none;
+    border:1px solid var(--gold);
+    padding:5px 10px;
+    border-radius:5px;
+    font-size:0.8rem;
+  }
+
+  .todo-item.done{opacity:0.55;}
+  .todo-item.done .ttext{text-decoration:line-through;}
+  .todo-item .ttext{flex:1;font-weight:600;}
+  .todo-item .tassign{font-size:0.78rem;color:#7a6e60;}
+  .checkbox{
+    width:22px;height:22px;flex:none;cursor:pointer;
+  }
+
+  .summary-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .summary-box{
+    flex:1;
+    min-width:100px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .summary-box .num{font-size:1.4rem;font-weight:700;color:var(--maroon);}
+  .summary-box .lbl{font-size:0.72rem;color:#7a6e60;text-transform:uppercase;}
+
+  footer{
+    text-align:center;
+    font-size:0.75rem;
+    color:#a8967f;
+    padding:14px;
+  }
+  .hint{font-size:0.75rem;color:#9a8c7c;margin-top:4px;}
+  .setup-box{
+    background:#fff;
+    border:2px dashed var(--gold);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .setup-box h3{margin-top:0;color:var(--maroon);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>馃拲 Wedding Manager</h1>
+  <p>Rooms 路 Vendors 路 Menu 路 To-Do</p>
+  <div id="syncStatus">
+    <span class="dot" id="syncDot"></span>
+    <span id="syncText">Not connected</span>
+    <button onclick="syncNow(true)">Sync now</button>
+  </div>
+</header>
+
+<nav id="tabNav">
+  <button class="active" data-tab="rooms">Rooms</button>
+  <button data-tab="vendors">Vendors</button>
+  <button data-tab="menu">Menu</button>
+  <button data-tab="todo">To-Do</button>
+  <button data-tab="data">Settings</button>
+</nav>
+
+<main>
+
+  <!-- ROOMS TAB -->
+  <section class="tab active" id="rooms">
+    <h2>Room Management</h2>
+
+    <div class="summary-row" id="roomSummary"></div>
+
+    <div class="card">
+      <strong id="roomFormTitle">Add Person to a Room</strong>
+      <div class="row">
+        <div>
+          <label>Room No.</label>
+          <input type="text" id="r_roomNo" placeholder="e.g. 101">
+        </div>
+        <div>
+          <label>Room Size (for info, e.g. 2+1)</label>
+          <input type="text" id="r_roomSize" placeholder="e.g. 2+1">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Person Name</label>
+          <input type="text" id="r_name" placeholder="Full name">
+        </div>
+        <div>
+          <label>Phone No.</label>
+          <input type="tel" id="r_phone" placeholder="Phone number">
+        </div>
+      </div>
+      <label>Address</label>
+      <textarea id="r_address" rows="2" placeholder="Address"></textarea>
+      <div>
+        <button class="btn btn-primary" onclick="saveMember()">Save</button>
+        <button class="btn btn-secondary" onclick="resetMemberForm()">Clear</button>
+      </div>
+      <input type="hidden" id="r_editId">
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchBox" placeholder="Search by name, phone, room no, or address..." oninput="renderRooms()">
+      <select id="filterRoom" onchange="renderRooms()">
+        <option value="">All Rooms</option>
+      </select>
+    </div>
+
+    <div id="roomsList"></div>
+  </section>
+
+  <!-- VENDORS TAB -->
+  <section class="tab" id="vendors">
+    <h2>Vendor Contacts</h2>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Vendor Name</label>
+          <input type="text" id="v_name" placeholder="e.g. Caterer - Sharma Catering">
+        </div>
+        <div>
+          <label>Category (optional)</label>
+          <input type="text" id="v_cat" placeholder="e.g. Catering, Decoration, DJ">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Mobile Number</label>
+          <input type="tel" id="v_phone" placeholder="Mobile number">
+        </div>
+      </div>
+      <label>Notes (optional)</label>
+      <textarea id="v_notes" rows="2" placeholder="Any notes"></textarea>
+      <div>
+        <button class="btn btn-primary" onclick="saveVendor()">Save</button>
+        <button class="btn btn-secondary" onclick="resetVendorForm()">Clear</button>
+      </div>
+      <input type="hidden" id="v_editId">
+    </div>
+    <div class="search-bar">
+      <input type="text" id="vendorSearch" placeholder="Search vendors..." oninput="renderVendors()">
+    </div>
+    <div id="vendorsList"></div>
+  </section>
+
+  <!-- MENU TAB -->
+  <section class="tab" id="menu">
+    <h2>Menu (PDF)</h2>
+    <div class="card">
+      <label>Menu Title</label>
+      <input type="text" id="m_title" placeholder="e.g. Reception Dinner Menu">
+      <label>Upload PDF</label>
+      <input type="file" id="m_file" accept="application/pdf">
+      <p class="hint">PDF files are stored on THIS device only (kept small for sheet syncing reasons, files over ~1MB may not sync). Other people will not see PDFs uploaded here unless you also share the file separately.</p>
+      <button class="btn btn-primary" onclick="saveMenu()">Save Menu</button>
+    </div>
+    <div id="menuList"></div>
+  </section>
+
+  <!-- TODO TAB -->
+  <section class="tab" id="todo">
+    <h2>To-Do List</h2>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Task</label>
+          <input type="text" id="t_task" placeholder="What needs to be done">
+        </div>
+        <div>
+          <label>Assigned To</label>
+          <input type="text" id="t_assign" placeholder="Who will do it">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addTodo()">Add Task</button>
+    </div>
+    <div class="summary-row" id="todoSummary"></div>
+    <div id="todoList"></div>
+  </section>
+
+  <!-- SETTINGS / SYNC TAB -->
+  <section class="tab" id="data">
+    <h2>Settings &amp; Sync</h2>
+
+    <div class="setup-box">
+      <h3>Connect to Google Sheet</h3>
+      <p>Paste the Web App URL from your Google Apps Script deployment below. All rooms, vendors and to-do items will be saved to that Google Sheet so everyone using this link sees the same data.</p>
+      <label>Apps Script Web App URL</label>
+      <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/AKfycbyJ9ehaZ_FlUxa_B3LasLg0heygXqUj76eEwBfyLrowwFX-4jTCQ2L5SvUug7iUtz-IRw/exec">
+      <button class="btn btn-primary" onclick="saveScriptUrl()">Save &amp; Connect</button>
+      <p class="hint" id="connHint"></p>
+    </div>
+
+    <div class="card">
+      <strong>Manual Sync</strong>
+      <p class="hint">The app syncs automatically after every change and every 30 seconds. Use this if you think you're out of sync.</p>
+      <button class="btn btn-green" onclick="syncNow(true)">Pull latest from Sheet</button>
+      <button class="btn btn-secondary" onclick="pushNow(true)">Push local data to Sheet</button>
+    </div>
+
+    <div class="card">
+      <strong>Local Backup (PDFs &amp; safety copy)</strong>
+      <p class="hint">PDF menus are stored locally on this device. Export a full backup including PDFs for safekeeping.</p>
+      <button class="btn btn-green" onclick="exportData()">Export Backup (.json)</button>
+      <br>
+      <label>Import Backup File</label>
+      <input type="file" id="importFile" accept="application/json">
+      <button class="btn btn-secondary" onclick="importData()">Import Backup</button>
+      <p class="hint">Importing will replace current local data (PDFs, etc). Room/vendor/todo data will then sync to the Sheet on next sync.</p>
+    </div>
+
+    <div class="card">
+      <strong>Clear All Local Data</strong>
+      <p class="hint">This clears data stored on this device only. Data on the Google Sheet is not affected.</p>
+      <button class="btn btn-danger" onclick="clearAllData()">Clear Local Data</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>Wedding Manager 路 Synced via Google Sheets</footer>
+
+<script>
+/* ---------------- STORAGE ---------------- */
+const STORE_KEY = 'weddingManagerData_v2';
+const URL_KEY = 'weddingManagerScriptUrl';
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){console.error(e);}
+  return { members: [], vendors: [], menus: [], todos: [] };
+}
+function saveData(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(DATA));
+}
+let DATA = loadData();
+if(!DATA.members) DATA.members = [];
+if(!DATA.vendors) DATA.vendors = [];
+if(!DATA.menus) DATA.menus = [];
+if(!DATA.todos) DATA.todos = [];
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+let SCRIPT_URL = localStorage.getItem(URL_KEY) || '';
+document.getElementById('scriptUrl').value = SCRIPT_URL;
+
+/* ---------------- TABS ---------------- */
+document.querySelectorAll('#tabNav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#tabNav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------------- SYNC ---------------- */
+let syncing = false;
+let pushTimer = null;
+
+function setSyncStatus(state, text){
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'dot' + (state==='ok'?'':' '+state);
+  txt.textContent = text;
+}
+
+function saveScriptUrl(){
+  const val = document.getElementById('scriptUrl').value.trim();
+  if(!val){
+    alert('Please paste the Apps Script Web App URL.');
+    return;
+  }
+  SCRIPT_URL = val;
+  localStorage.setItem(URL_KEY, SCRIPT_URL);
+  document.getElementById('connHint').textContent = 'Saved. Pulling data...';
+  syncNow(true);
+}
+
+// Pull latest data from the Sheet, replacing local sync-able data
+async function syncNow(manual){
+  if(!SCRIPT_URL){
+    setSyncStatus('bad', 'Not connected');
+    if(manual) document.getElementById('connHint').textContent = 'No Sheet connected yet. Paste your Apps Script URL above.';
+    return;
+  }
+  setSyncStatus('busy', 'Syncing...');
+  try{
+    const res = await fetch(SCRIPT_URL);
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'Unknown error');
+
+    DATA.members = json.data.members || [];
+    DATA.vendors = json.data.vendors || [];
+    DATA.todos = (json.data.todos || []).map(t=>({...t, done: !!t.done}));
+    // menus stay local (PDFs not synced via sheet)
+    saveData();
+    renderAll();
+
+    setSyncStatus('ok', 'Synced');
+    document.getElementById('connHint').textContent = 'Connected. Data loaded from Sheet.';
+  }catch(err){
+    console.error(err);
+    setSyncStatus('bad', 'Sync failed');
+    if(manual) document.getElementById('connHint').textContent = 'Could not reach Sheet: ' + err.message;
+  }
+}
+
+// Push local members/vendors/todos to the Sheet (full replace)
+async function pushNow(manual){
+  if(!SCRIPT_URL){
+    if(manual) alert('Connect to a Google Sheet first in Settings.');
+    return;
+  }
+  setSyncStatus('busy', 'Saving...');
+  try{
+    const payload = {
+      members: DATA.members,
+      vendors: DATA.vendors,
+      todos: DATA.todos
+    };
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'Unknown error');
+    setSyncStatus('ok', 'Synced');
+  }catch(err){
+    console.error(err);
+    setSyncStatus('bad', 'Save failed');
+    if(manual) alert('Could not save to Sheet: ' + err.message);
+  }
+}
+
+// Debounced push - called after local edits
+function queuePush(){
+  if(pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(()=>pushNow(false), 600);
+}
+
+/* ---------------- ROOM MANAGEMENT ---------------- */
+function resetMemberForm(){
+  document.getElementById('r_editId').value = '';
+  document.getElementById('r_roomNo').value = '';
+  document.getElementById('r_roomSize').value = '';
+  document.getElementById('r_name').value = '';
+  document.getElementById('r_phone').value = '';
+  document.getElementById('r_address').value = '';
+  document.getElementById('roomFormTitle').textContent = 'Add Person to a Room';
+}
+
+function saveMember(){
+  const roomNo = document.getElementById('r_roomNo').value.trim();
+  const roomSize = document.getElementById('r_roomSize').value.trim();
+  const name = document.getElementById('r_name').value.trim();
+  const phone = document.getElementById('r_phone').value.trim();
+  const address = document.getElementById('r_address').value.trim();
+  const editId = document.getElementById('r_editId').value;
+
+  if(!roomNo || !name){
+    alert('Please enter at least Room No. and Person Name.');
+    return;
+  }
+
+  if(editId){
+    const m = DATA.members.find(x=>x.id===editId);
+    if(m){
+      m.roomNo = roomNo; m.roomSize = roomSize; m.name = name; m.phone = phone; m.address = address;
+    }
+  }else{
+    DATA.members.push({ id: uid(), roomNo, roomSize, name, phone, address });
+  }
+  saveData();
+  resetMemberForm();
+  renderRooms();
+  queuePush();
+}
+
+function editMember(id){
+  const m = DATA.members.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('r_editId').value = m.id;
+  document.getElementById('r_roomNo').value = m.roomNo;
+  document.getElementById('r_roomSize').value = m.roomSize || '';
+  document.getElementById('r_name').value = m.name;
+  document.getElementById('r_phone').value = m.phone || '';
+  document.getElementById('r_address').value = m.address || '';
+  document.getElementById('roomFormTitle').textContent = 'Edit Person';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteMember(id){
+  if(!confirm('Delete this person from the room list?')) return;
+  DATA.members = DATA.members.filter(x=>x.id!==id);
+  saveData();
+  renderRooms();
+  queuePush();
+}
+
+function renderRooms(){
+  const search = document.getElementById('searchBox').value.trim().toLowerCase();
+  const filterRoom = document.getElementById('filterRoom').value;
+
+  // Build room -> members map
+  const roomsMap = {};
+  DATA.members.forEach(m=>{
+    if(!roomsMap[m.roomNo]) roomsMap[m.roomNo] = [];
+    roomsMap[m.roomNo].push(m);
+  });
+
+  // update filter dropdown
+  const filterSel = document.getElementById('filterRoom');
+  const currentVal = filterSel.value;
+  const roomNos = Object.keys(roomsMap).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+  filterSel.innerHTML = '<option value="">All Rooms</option>' + roomNos.map(r=>`<option value="${escapeHtml(r)}">Room ${escapeHtml(r)}</option>`).join('');
+  filterSel.value = roomNos.includes(currentVal) ? currentVal : '';
+
+  // Summary
+  const totalRooms = roomNos.length;
+  const totalPeople = DATA.members.length;
+  document.getElementById('roomSummary').innerHTML = `
+    <div class="summary-box"><div class="num">${totalRooms}</div><div class="lbl">Rooms in use</div></div>
+    <div class="summary-box"><div class="num">${totalPeople}</div><div class="lbl">Total guests assigned</div></div>
+  `;
+
+  // Filter rooms
+  let roomsToShow = roomNos;
+  if(filterSel.value) roomsToShow = roomsToShow.filter(r=>r===filterSel.value);
+
+  const list = document.getElementById('roomsList');
+
+  if(roomsToShow.length===0){
+    list.innerHTML = '<p class="empty-msg">No rooms added yet. Use the form above to add the first person.</p>';
+    return;
+  }
+
+  let html = '';
+  roomsToShow.forEach(roomNo=>{
+    let members = roomsMap[roomNo];
+
+    // apply search filter at member level, but keep room visible if room no matches search too
+    let visibleMembers = members;
+    if(search){
+      const roomMatches = roomNo.toLowerCase().includes(search);
+      visibleMembers = members.filter(m=>
+        roomMatches ||
+        (m.name||'').toLowerCase().includes(search) ||
+        (m.phone||'').toLowerCase().includes(search) ||
+        (m.address||'').toLowerCase().includes(search)
+      );
+      if(visibleMembers.length===0) return;
+    }
+
+    const roomSize = members.find(m=>m.roomSize)?.roomSize || '';
+
+    html += `<div class="room-card">
+      <div class="room-head">
+        <strong>Room ${escapeHtml(roomNo)}</strong>
+        <div>
+          ${roomSize ? `<span class="badge">Size: ${escapeHtml(roomSize)}</span>` : ''}
+          <span class="badge">${visibleMembers.length} ${visibleMembers.length===1?'person':'people'}</span>
+        </div>
+      </div>
+      <div class="members">`;
+
+    visibleMembers.forEach(m=>{
+      html += `<div class="member-line">
+        <div class="member-info">
+          <div class="name">${escapeHtml(m.name)}</div>
+          <div class="meta">${m.phone? '馃摓 '+escapeHtml(m.phone):''} ${m.address? '路 馃彔 '+escapeHtml(m.address):''}</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary btn-small" onclick="editMember('${m.id}')">Edit</button>
+          <button class="btn btn-danger btn-small" onclick="deleteMember('${m.id}')">Delete</button>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  if(!html){
+    html = '<p class="empty-msg">No matches found.</p>';
+  }
+
+  list.innerHTML = html;
+}
+
+/* ---------------- VENDORS ---------------- */
+function resetVendorForm(){
+  document.getElementById('v_editId').value = '';
+  document.getElementById('v_name').value = '';
+  document.getElementById('v_cat').value = '';
+  document.getElementById('v_phone').value = '';
+  document.getElementById('v_notes').value = '';
+}
+
+function saveVendor(){
+  const name = document.getElementById('v_name').value.trim();
+  const cat = document.getElementById('v_cat').value.trim();
+  const phone = document.getElementById('v_phone').value.trim();
+  const notes = document.getElementById('v_notes').value.trim();
+  const editId = document.getElementById('v_editId').value;
+
+  if(!name || !phone){
+    alert('Please enter vendor name and mobile number.');
+    return;
+  }
+
+  if(editId){
+    const v = DATA.vendors.find(x=>x.id===editId);
+    if(v){ v.name=name; v.cat=cat; v.phone=phone; v.notes=notes; }
+  }else{
+    DATA.vendors.push({id: uid(), name, cat, phone, notes});
+  }
+  saveData();
+  resetVendorForm();
+  renderVendors();
+  queuePush();
+}
+
+function editVendor(id){
+  const v = DATA.vendors.find(x=>x.id===id);
+  if(!v) return;
+  document.getElementById('v_editId').value = v.id;
+  document.getElementById('v_name').value = v.name;
+  document.getElementById('v_cat').value = v.cat || '';
+  document.getElementById('v_phone').value = v.phone;
+  document.getElementById('v_notes').value = v.notes || '';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteVendor(id){
+  if(!confirm('Delete this vendor?')) return;
+  DATA.vendors = DATA.vendors.filter(x=>x.id!==id);
+  saveData();
+  renderVendors();
+  queuePush();
+}
+
+function renderVendors(){
+  const search = document.getElementById('vendorSearch').value.trim().toLowerCase();
+  let vendors = DATA.vendors.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(search){
+    vendors = vendors.filter(v=>
+      v.name.toLowerCase().includes(search) ||
+      (v.cat||'').toLowerCase().includes(search) ||
+      v.phone.toLowerCase().includes(search)
+    );
+  }
+  const list = document.getElementById('vendorsList');
+  if(vendors.length===0){
+    list.innerHTML = '<p class="empty-msg">No vendors saved yet.</p>';
+    return;
+  }
+  list.innerHTML = vendors.map(v=>`
+    <div class="vendor-item">
+      <div>
+        <div class="vname">${escapeHtml(v.name)}</div>
+        <div class="vcat">${v.cat? escapeHtml(v.cat)+' 路 ':''}馃摓 <a href="tel:${escapeHtml(v.phone)}" style="color:inherit;text-decoration:none;">${escapeHtml(v.phone)}</a></div>
+        ${v.notes? `<div class="vcat">${escapeHtml(v.notes)}</div>`:''}
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary btn-small" onclick="editVendor('${v.id}')">Edit</button>
+        <button class="btn btn-danger btn-small" onclick="deleteVendor('${v.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---------------- MENU PDFs (local only) ---------------- */
+function saveMenu(){
+  const title = document.getElementById('m_title').value.trim();
+  const fileInput = document.getElementById('m_file');
+  const file = fileInput.files[0];
+
+  if(!title || !file){
+    alert('Please enter a title and choose a PDF file.');
+    return;
+  }
+  if(file.type !== 'application/pdf'){
+    alert('Please select a PDF file.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    DATA.menus.push({
+      id: uid(),
+      title,
+      filename: file.name,
+      dataUrl: e.target.result
+    });
+    saveData();
+    document.getElementById('m_title').value = '';
+    fileInput.value = '';
+    renderMenus();
+  };
+  reader.readAsDataURL(file);
+}
+
+function deleteMenu(id){
+  if(!confirm('Delete this menu PDF?')) return;
+  DATA.menus = DATA.menus.filter(x=>x.id!==id);
+  saveData();
+  renderMenus();
+}
+
+function renderMenus(){
+  const list = document.getElementById('menuList');
+  if(DATA.menus.length===0){
+    list.innerHTML = '<p class="empty-msg">No menu PDFs saved yet.</p>';
+    return;
+  }
+  list.innerHTML = DATA.menus.map(m=>`
+    <div class="pdf-item">
+      <div>
+        <div class="pname">${escapeHtml(m.title)}</div>
+        <div class="vcat" style="font-size:0.78rem;color:#7a6e60;">${escapeHtml(m.filename)}</div>
+      </div>
+      <div class="actions">
+        <a class="pdf-link" href="${m.dataUrl}" download="${escapeHtml(m.filename)}">Open / Download</a>
+        <button class="btn btn-danger btn-small" onclick="deleteMenu('${m.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---------------- TODO ---------------- */
+function addTodo(){
+  const task = document.getElementById('t_task').value.trim();
+  const assign = document.getElementById('t_assign').value.trim();
+  if(!task){
+    alert('Please enter a task.');
+    return;
+  }
+  DATA.todos.push({id: uid(), task, assign, done:false});
+  saveData();
+  document.getElementById('t_task').value = '';
+  document.getElementById('t_assign').value = '';
+  renderTodos();
+  queuePush();
+}
+
+function toggleTodo(id){
+  const t = DATA.todos.find(x=>x.id===id);
+  if(t){ t.done = !t.done; saveData(); renderTodos(); queuePush(); }
+}
+
+function deleteTodo(id){
+  if(!confirm('Delete this task?')) return;
+  DATA.todos = DATA.todos.filter(x=>x.id!==id);
+  saveData();
+  renderTodos();
+  queuePush();
+}
+
+function renderTodos(){
+  const total = DATA.todos.length;
+  const done = DATA.todos.filter(t=>t.done).length;
+  document.getElementById('todoSummary').innerHTML = `
+    <div class="summary-box"><div class="num">${total}</div><div class="lbl">Total tasks</div></div>
+    <div class="summary-box"><div class="num">${done}</div><div class="lbl">Completed</div></div>
+    <div class="summary-box"><div class="num">${total-done}</div><div class="lbl">Pending</div></div>
+  `;
+
+  const list = document.getElementById('todoList');
+  if(total===0){
+    list.innerHTML = '<p class="empty-msg">No tasks added yet.</p>';
+    return;
+  }
+  // pending first, then done
+  const sorted = DATA.todos.slice().sort((a,b)=> (a.done - b.done));
+  list.innerHTML = sorted.map(t=>`
+    <div class="todo-item ${t.done?'done':''}">
+      <input type="checkbox" class="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')">
+      <div style="flex:1;">
+        <div class="ttext">${escapeHtml(t.task)}</div>
+        ${t.assign? `<div class="tassign">Assigned to: ${escapeHtml(t.assign)}</div>`:''}
+      </div>
+      <button class="btn btn-danger btn-small" onclick="deleteTodo('${t.id}')">Delete</button>
+    </div>
+  `).join('');
+}
+
+/* ---------------- BACKUP / RESTORE (local, includes PDFs) ---------------- */
+function exportData(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `wedding-manager-backup-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(){
+  const fileInput = document.getElementById('importFile');
+  const file = fileInput.files[0];
+  if(!file){ alert('Please choose a backup JSON file.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!confirm('This will replace all current local data with the imported backup. Continue?')) return;
+      DATA = {
+        members: imported.members || [],
+        vendors: imported.vendors || [],
+        menus: imported.menus || [],
+        todos: imported.todos || []
+      };
+      saveData();
+      fileInput.value = '';
+      renderAll();
+      queuePush();
+      alert('Backup imported. Syncing to Sheet...');
+    }catch(err){
+      alert('Invalid backup file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData(){
+  if(!confirm('This will permanently delete ALL local data (rooms, vendors, menus, to-do) on this device. Are you sure?')) return;
+  if(!confirm('Really sure? This cannot be undone.')) return;
+  DATA = { members: [], vendors: [], menus: [], todos: [] };
+  saveData();
+  renderAll();
+}
+
+/* ---------------- UTIL ---------------- */
+function escapeHtml(str){
+  if(str===undefined || str===null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function renderAll(){
+  renderRooms();
+  renderVendors();
+  renderMenus();
+  renderTodos();
+}
+
+renderAll();
+
+// Initial sync + periodic auto-sync
+if(SCRIPT_URL){
+  document.getElementById('connHint').textContent = 'Connected. Loading data...';
+  syncNow(false);
+} else {
+  setSyncStatus('bad', 'Not connected 鈥?go to Settings');
+}
+setInterval(()=>{ if(SCRIPT_URL) syncNow(false); }, 30000);
+</script>
+</body>
+</html>
