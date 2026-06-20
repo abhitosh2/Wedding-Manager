@@ -84,6 +84,17 @@
     cursor:pointer;
     margin-left:6px;
   }
+  #pushBtn.pending{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:var(--maroon);
+    font-weight:700;
+    animation:pulseGlow 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseGlow{
+    0%,100%{box-shadow:0 0 0 0 rgba(200,144,46,0.6);}
+    50%{box-shadow:0 0 0 5px rgba(200,144,46,0);}
+  }
   nav{
     display:flex;
     overflow-x:auto;
@@ -320,7 +331,8 @@
   <div id="syncStatus">
     <span class="dot" id="syncDot"></span>
     <span id="syncText">Not connected</span>
-    <button onclick="syncNow(true)">Sync now</button>
+    <button onclick="pushNow(true)" id="pushBtn">Push Changes</button>
+    <button onclick="syncNow(true)">Pull Latest</button>
   </div>
 </header>
 
@@ -564,6 +576,11 @@ async function syncNow(manual){
     if(manual) document.getElementById('connHint').textContent = 'No Sheet connected yet. Paste your Apps Script URL above.';
     return;
   }
+  const pushBtn = document.getElementById('pushBtn');
+  if(manual && pushBtn && pushBtn.classList.contains('pending')){
+    const proceed = confirm('You have unsaved changes that have not been pushed to the Sheet yet. Pulling now will discard them. Push your changes first?\n\nPress Cancel to go back and push your changes, or OK to discard them and pull the latest from the Sheet.');
+    if(!proceed) return;
+  }
   setSyncStatus('busy', 'Syncing...');
   try{
     const res = await fetch(SCRIPT_URL);
@@ -578,6 +595,7 @@ async function syncNow(manual){
     renderAll();
 
     setSyncStatus('ok', 'Synced');
+    setPendingChanges(false);
     document.getElementById('connHint').textContent = 'Connected. Data loaded from Sheet.';
   }catch(err){
     console.error(err);
@@ -607,17 +625,31 @@ async function pushNow(manual){
     const json = await res.json();
     if(!json.ok) throw new Error(json.error || 'Unknown error');
     setSyncStatus('ok', 'Synced');
+    setPendingChanges(false);
   }catch(err){
     console.error(err);
-    setSyncStatus('bad', 'Save failed');
+    setSyncStatus('bad', 'Save failed - tap Push Changes to retry');
     if(manual) alert('Could not save to Sheet: ' + err.message);
   }
 }
 
-// Debounced push - called after local edits
+// Mark / clear the "unsynced changes" indicator on the Push button
+function setPendingChanges(isPending){
+  const btn = document.getElementById('pushBtn');
+  if(!btn) return;
+  if(isPending){
+    btn.classList.add('pending');
+    btn.textContent = 'Push Changes *';
+  }else{
+    btn.classList.remove('pending');
+    btn.textContent = 'Push Changes';
+  }
+}
+
+// Called after every local edit - just flags that a push is needed.
+// No automatic network call, so rapid edits never race each other or get lost.
 function queuePush(){
-  if(pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(()=>pushNow(false), 600);
+  setPendingChanges(true);
 }
 
 /* ---------------- ROOM MANAGEMENT ---------------- */
@@ -1148,7 +1180,11 @@ if(SCRIPT_URL){
 } else {
   setSyncStatus('bad', 'Not connected - go to Settings');
 }
-setInterval(()=>{ if(SCRIPT_URL) syncNow(false); }, 30000);
+setInterval(()=>{
+  const pushBtn = document.getElementById('pushBtn');
+  const hasPending = pushBtn && pushBtn.classList.contains('pending');
+  if(SCRIPT_URL && !hasPending) syncNow(false);
+}, 30000);
 </script>
 </body>
 </html>
