@@ -448,7 +448,11 @@
   <!-- TODO TAB -->
   <section class="tab" id="todo">
     <h2>To-Do List</h2>
+    <div style="text-align:right;margin-bottom:10px;">
+      <button class="btn btn-green" onclick="downloadTodoPDF()">Download To-Do List (PDF)</button>
+    </div>
     <div class="card">
+      <strong id="todoFormTitle">Add Task</strong>
       <div class="row">
         <div>
           <label>Task</label>
@@ -459,7 +463,9 @@
           <input type="text" id="t_assign" placeholder="Who will do it">
         </div>
       </div>
-      <button class="btn btn-primary" onclick="addTodo()">Add Task</button>
+      <button class="btn btn-primary" onclick="saveTodo()">Save</button>
+      <button class="btn btn-secondary" onclick="resetTodoForm()">Clear</button>
+      <input type="hidden" id="t_editId">
     </div>
     <div class="summary-row" id="todoSummary"></div>
     <div id="todoList"></div>
@@ -1045,19 +1051,43 @@ function renderMenus(){
 }
 
 /* ---------------- TODO ---------------- */
-function addTodo(){
+function resetTodoForm(){
+  document.getElementById('t_editId').value = '';
+  document.getElementById('t_task').value = '';
+  document.getElementById('t_assign').value = '';
+  document.getElementById('todoFormTitle').textContent = 'Add Task';
+}
+
+function saveTodo(){
   const task = document.getElementById('t_task').value.trim();
   const assign = document.getElementById('t_assign').value.trim();
+  const editId = document.getElementById('t_editId').value;
+
   if(!task){
     alert('Please enter a task.');
     return;
   }
-  DATA.todos.push({id: uid(), task, assign, done:false});
+
+  if(editId){
+    const t = DATA.todos.find(x=>x.id===editId);
+    if(t){ t.task = task; t.assign = assign; }
+  }else{
+    DATA.todos.push({id: uid(), task, assign, done:false});
+  }
   saveData();
-  document.getElementById('t_task').value = '';
-  document.getElementById('t_assign').value = '';
+  resetTodoForm();
   renderTodos();
   queuePush();
+}
+
+function editTodo(id){
+  const t = DATA.todos.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('t_editId').value = t.id;
+  document.getElementById('t_task').value = t.task;
+  document.getElementById('t_assign').value = t.assign || '';
+  document.getElementById('todoFormTitle').textContent = 'Edit Task';
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function toggleTodo(id){
@@ -1096,9 +1126,90 @@ function renderTodos(){
         <div class="ttext">${escapeHtml(t.task)}</div>
         ${t.assign? `<div class="tassign">Assigned to: ${escapeHtml(t.assign)}</div>`:''}
       </div>
-      <button class="btn btn-danger btn-small" onclick="deleteTodo('${t.id}')">Delete</button>
+      <div class="actions">
+        <button class="btn btn-secondary btn-small" onclick="editTodo('${t.id}')">Edit</button>
+        <button class="btn btn-danger btn-small" onclick="deleteTodo('${t.id}')">Delete</button>
+      </div>
     </div>
   `).join('');
+}
+
+function downloadTodoPDF(){
+  if(typeof window.jspdf === 'undefined'){
+    alert('PDF library did not load. Please check your internet connection and try again.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  let y = 50;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(122, 46, 60);
+  doc.text('Wedding To-Do List', pageWidth / 2, y, { align: 'center' });
+  y += 20;
+
+  doc.setFontSize(10);
+  doc.setTextColor(120, 110, 96);
+  doc.setFont('helvetica', 'normal');
+  const now = new Date();
+  doc.text('Generated: ' + now.toLocaleDateString() + ' ' + now.toLocaleTimeString(), pageWidth / 2, y, { align: 'center' });
+  y += 30;
+
+  if(DATA.todos.length === 0){
+    doc.setFontSize(12);
+    doc.setTextColor(60,60,60);
+    doc.text('No tasks added yet.', margin, y);
+    doc.save('wedding-todo-list.pdf');
+    return;
+  }
+
+  const pending = DATA.todos.filter(t=>!t.done);
+  const completed = DATA.todos.filter(t=>t.done);
+
+  function renderSection(title, items){
+    if(items.length === 0) return;
+
+    if(y + 30 > pageHeight - margin){ doc.addPage(); y = 50; }
+
+    doc.setFillColor(242, 224, 187);
+    doc.rect(margin, y - 12, pageWidth - margin*2, 20, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(122, 46, 60);
+    doc.text(title + ' (' + items.length + ')', margin + 6, y + 2);
+    y += 26;
+
+    items.forEach((t, idx)=>{
+      if(y + 26 > pageHeight - margin){ doc.addPage(); y = 50; }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(51, 40, 42);
+      const taskLines = doc.splitTextToSize((idx+1) + '. ' + t.task, pageWidth - margin*2 - 16);
+      doc.text(taskLines, margin + 10, y);
+      y += 14 * taskLines.length;
+
+      if(t.assign){
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(110, 100, 90);
+        doc.text('Assigned to: ' + t.assign, margin + 16, y);
+        y += 14;
+      }
+      y += 4;
+    });
+    y += 10;
+  }
+
+  renderSection('Pending Tasks', pending);
+  renderSection('Completed Tasks', completed);
+
+  doc.save('wedding-todo-list.pdf');
 }
 
 /* ---------------- BACKUP / RESTORE (local, includes PDFs) ---------------- */
