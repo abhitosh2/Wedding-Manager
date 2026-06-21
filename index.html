@@ -541,16 +541,34 @@ function loadData(){
     const raw = localStorage.getItem(STORE_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){console.error(e);}
-  return { members: [], vendors: [], menus: [], todos: [] };
+  return { rooms: [], members: [], vendors: [], menus: [], todos: [] };
 }
 function saveData(){
   localStorage.setItem(STORE_KEY, JSON.stringify(DATA));
 }
 let DATA = loadData();
+if(!DATA.rooms) DATA.rooms = [];
 if(!DATA.members) DATA.members = [];
 if(!DATA.vendors) DATA.vendors = [];
 if(!DATA.menus) DATA.menus = [];
 if(!DATA.todos) DATA.todos = [];
+
+// One-time migration: pull roomSize off old member records (pre-rooms-restructure)
+// into the new rooms list, so room sizes set before this update are not lost.
+(function migrateRoomSizes(){
+  let changed = false;
+  DATA.members.forEach(m=>{
+    if(m.roomSize && m.roomSize.trim()){
+      const existing = DATA.rooms.find(r=>r.roomNo === m.roomNo);
+      if(!existing){
+        DATA.rooms.push({roomNo: m.roomNo, roomSize: m.roomSize.trim()});
+      }
+      delete m.roomSize;
+      changed = true;
+    }
+  });
+  if(changed) saveData();
+})();
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
