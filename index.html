@@ -463,6 +463,8 @@
           <input type="text" id="t_assign" placeholder="Who will do it">
         </div>
       </div>
+      <label>Notes (optional)</label>
+      <textarea id="t_notes" rows="2" placeholder="Any extra details about this task"></textarea>
       <button class="btn btn-primary" onclick="saveTodo()">Save</button>
       <button class="btn btn-secondary" onclick="resetTodoForm()">Clear</button>
       <input type="hidden" id="t_editId">
@@ -1055,12 +1057,14 @@ function resetTodoForm(){
   document.getElementById('t_editId').value = '';
   document.getElementById('t_task').value = '';
   document.getElementById('t_assign').value = '';
+  document.getElementById('t_notes').value = '';
   document.getElementById('todoFormTitle').textContent = 'Add Task';
 }
 
 function saveTodo(){
   const task = document.getElementById('t_task').value.trim();
   const assign = document.getElementById('t_assign').value.trim();
+  const notes = document.getElementById('t_notes').value.trim();
   const editId = document.getElementById('t_editId').value;
 
   if(!task){
@@ -1070,9 +1074,9 @@ function saveTodo(){
 
   if(editId){
     const t = DATA.todos.find(x=>x.id===editId);
-    if(t){ t.task = task; t.assign = assign; }
+    if(t){ t.task = task; t.assign = assign; t.notes = notes; }
   }else{
-    DATA.todos.push({id: uid(), task, assign, done:false});
+    DATA.todos.push({id: uid(), task, assign, notes, done:false});
   }
   saveData();
   resetTodoForm();
@@ -1086,6 +1090,7 @@ function editTodo(id){
   document.getElementById('t_editId').value = t.id;
   document.getElementById('t_task').value = t.task;
   document.getElementById('t_assign').value = t.assign || '';
+  document.getElementById('t_notes').value = t.notes || '';
   document.getElementById('todoFormTitle').textContent = 'Edit Task';
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -1125,6 +1130,7 @@ function renderTodos(){
       <div style="flex:1;">
         <div class="ttext">${escapeHtml(t.task)}</div>
         ${t.assign? `<div class="tassign">Assigned to: ${escapeHtml(t.assign)}</div>`:''}
+        ${t.notes? `<div class="tassign" style="font-style:italic;">Note: ${escapeHtml(t.notes)}</div>`:''}
       </div>
       <div class="actions">
         <button class="btn btn-secondary btn-small" onclick="editTodo('${t.id}')">Edit</button>
@@ -1195,11 +1201,22 @@ function downloadTodoPDF(){
       y += 14 * taskLines.length;
 
       if(t.assign){
+        if(y + 14 > pageHeight - margin){ doc.addPage(); y = 50; }
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(110, 100, 90);
         doc.text('Assigned to: ' + t.assign, margin + 16, y);
         y += 14;
+      }
+
+      if(t.notes){
+        if(y + 14 > pageHeight - margin){ doc.addPage(); y = 50; }
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9.5);
+        doc.setTextColor(110, 100, 90);
+        const noteLines = doc.splitTextToSize('Note: ' + t.notes, pageWidth - margin*2 - 20);
+        doc.text(noteLines, margin + 16, y);
+        y += 14 * noteLines.length;
       }
       y += 4;
     });
