@@ -357,22 +357,35 @@
     </div>
 
     <div class="card">
+      <strong>Add / Update Room</strong>
+      <p class="hint">Create a room and set its size here. You can do this even before assigning anyone to it.</p>
+      <div class="row">
+        <div>
+          <label>Room No.</label>
+          <input type="text" id="room_no" placeholder="e.g. 101">
+        </div>
+        <div>
+          <label>Room Size (for info, e.g. 2+1)</label>
+          <input type="text" id="room_size" placeholder="e.g. 2+1">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveRoom()">Save Room</button>
+    </div>
+
+    <div class="card">
       <strong id="roomFormTitle">Add Person to a Room</strong>
       <div class="row">
         <div>
           <label>Room No.</label>
-          <input type="text" id="r_roomNo" placeholder="e.g. 101">
+          <input type="text" id="r_roomNo" placeholder="e.g. 101" list="roomNoSuggestions">
+          <datalist id="roomNoSuggestions"></datalist>
         </div>
-        <div>
-          <label>Room Size (for info, e.g. 2+1)</label>
-          <input type="text" id="r_roomSize" placeholder="e.g. 2+1">
-        </div>
-      </div>
-      <div class="row">
         <div>
           <label>Person Name</label>
           <input type="text" id="r_name" placeholder="Full name">
         </div>
+      </div>
+      <div class="row">
         <div>
           <label>Phone No.</label>
           <input type="tel" id="r_phone" placeholder="Phone number">
@@ -595,6 +608,7 @@ async function syncNow(manual){
     const json = await res.json();
     if(!json.ok) throw new Error(json.error || 'Unknown error');
 
+    DATA.rooms = json.data.rooms || [];
     DATA.members = json.data.members || [];
     DATA.vendors = json.data.vendors || [];
     DATA.todos = (json.data.todos || []).map(t=>({...t, done: !!t.done}));
@@ -621,6 +635,7 @@ async function pushNow(manual){
   setSyncStatus('busy', 'Saving...');
   try{
     const payload = {
+      rooms: DATA.rooms,
       members: DATA.members,
       vendors: DATA.vendors,
       todos: DATA.todos
@@ -661,10 +676,36 @@ function queuePush(){
 }
 
 /* ---------------- ROOM MANAGEMENT ---------------- */
+function saveRoom(){
+  const roomNo = document.getElementById('room_no').value.trim();
+  const roomSize = document.getElementById('room_size').value.trim();
+
+  if(!roomNo){
+    alert('Please enter a Room No.');
+    return;
+  }
+
+  let room = DATA.rooms.find(r=>r.roomNo === roomNo);
+  if(room){
+    room.roomSize = roomSize;
+  }else{
+    DATA.rooms.push({ roomNo, roomSize });
+  }
+  saveData();
+  document.getElementById('room_no').value = '';
+  document.getElementById('room_size').value = '';
+  renderRooms();
+  queuePush();
+}
+
+function getRoomSize(roomNo){
+  const room = DATA.rooms.find(r=>r.roomNo === roomNo);
+  return room ? room.roomSize : '';
+}
+
 function resetMemberForm(){
   document.getElementById('r_editId').value = '';
   document.getElementById('r_roomNo').value = '';
-  document.getElementById('r_roomSize').value = '';
   document.getElementById('r_name').value = '';
   document.getElementById('r_phone').value = '';
   document.getElementById('r_address').value = '';
@@ -673,7 +714,6 @@ function resetMemberForm(){
 
 function saveMember(){
   const roomNo = document.getElementById('r_roomNo').value.trim();
-  const roomSize = document.getElementById('r_roomSize').value.trim();
   const name = document.getElementById('r_name').value.trim();
   const phone = document.getElementById('r_phone').value.trim();
   const address = document.getElementById('r_address').value.trim();
@@ -684,13 +724,18 @@ function saveMember(){
     return;
   }
 
+  // Auto-create the room (with no size set) if it doesn't exist yet
+  if(!DATA.rooms.find(r=>r.roomNo === roomNo)){
+    DATA.rooms.push({ roomNo, roomSize: '' });
+  }
+
   if(editId){
     const m = DATA.members.find(x=>x.id===editId);
     if(m){
-      m.roomNo = roomNo; m.roomSize = roomSize; m.name = name; m.phone = phone; m.address = address;
+      m.roomNo = roomNo; m.name = name; m.phone = phone; m.address = address;
     }
   }else{
-    DATA.members.push({ id: uid(), roomNo, roomSize, name, phone, address });
+    DATA.members.push({ id: uid(), roomNo, name, phone, address });
   }
   saveData();
   resetMemberForm();
@@ -703,7 +748,6 @@ function editMember(id){
   if(!m) return;
   document.getElementById('r_editId').value = m.id;
   document.getElementById('r_roomNo').value = m.roomNo;
-  document.getElementById('r_roomSize').value = m.roomSize || '';
   document.getElementById('r_name').value = m.name;
   document.getElementById('r_phone').value = m.phone || '';
   document.getElementById('r_address').value = m.address || '';
@@ -719,12 +763,26 @@ function deleteMember(id){
   queuePush();
 }
 
+function deleteRoom(roomNo){
+  const occupants = DATA.members.filter(m=>m.roomNo===roomNo).length;
+  if(occupants > 0){
+    alert('This room still has ' + occupants + ' ' + (occupants===1?'person':'people') + ' assigned. Remove or reassign them first.');
+    return;
+  }
+  if(!confirm('Delete Room ' + roomNo + '?')) return;
+  DATA.rooms = DATA.rooms.filter(r=>r.roomNo!==roomNo);
+  saveData();
+  renderRooms();
+  queuePush();
+}
+
 function renderRooms(){
   const search = document.getElementById('searchBox').value.trim().toLowerCase();
   const filterRoom = document.getElementById('filterRoom').value;
 
-  // Build room -> members map
+  // Build room -> members map, seeded with all known rooms (so empty rooms show too)
   const roomsMap = {};
+  DATA.rooms.forEach(r=>{ roomsMap[r.roomNo] = []; });
   DATA.members.forEach(m=>{
     if(!roomsMap[m.roomNo]) roomsMap[m.roomNo] = [];
     roomsMap[m.roomNo].push(m);
@@ -736,6 +794,12 @@ function renderRooms(){
   const roomNos = Object.keys(roomsMap).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
   filterSel.innerHTML = '<option value="">All Rooms</option>' + roomNos.map(r=>`<option value="${escapeHtml(r)}">Room ${escapeHtml(r)}</option>`).join('');
   filterSel.value = roomNos.includes(currentVal) ? currentVal : '';
+
+  // update datalist for room-no autocomplete on the "Add Person" form
+  const suggestList = document.getElementById('roomNoSuggestions');
+  if(suggestList){
+    suggestList.innerHTML = roomNos.map(r=>`<option value="${escapeHtml(r)}">`).join('');
+  }
 
   // Summary
   const totalRooms = roomNos.length;
@@ -752,7 +816,7 @@ function renderRooms(){
   const list = document.getElementById('roomsList');
 
   if(roomsToShow.length===0){
-    list.innerHTML = '<p class="empty-msg">No rooms added yet. Use the form above to add the first person.</p>';
+    list.innerHTML = '<p class="empty-msg">No rooms added yet. Use the form above to add the first room.</p>';
     return;
   }
 
@@ -764,16 +828,17 @@ function renderRooms(){
     let visibleMembers = members;
     if(search){
       const roomMatches = roomNo.toLowerCase().includes(search);
-      visibleMembers = members.filter(m=>
-        roomMatches ||
-        (m.name||'').toLowerCase().includes(search) ||
-        (m.phone||'').toLowerCase().includes(search) ||
-        (m.address||'').toLowerCase().includes(search)
-      );
-      if(visibleMembers.length===0) return;
+      if(!roomMatches){
+        visibleMembers = members.filter(m=>
+          (m.name||'').toLowerCase().includes(search) ||
+          (m.phone||'').toLowerCase().includes(search) ||
+          (m.address||'').toLowerCase().includes(search)
+        );
+        if(visibleMembers.length===0) return;
+      }
     }
 
-    const roomSize = members.find(m=>m.roomSize)?.roomSize || '';
+    const roomSize = getRoomSize(roomNo);
 
     html += `<div class="room-card">
       <div class="room-head">
@@ -781,9 +846,14 @@ function renderRooms(){
         <div>
           ${roomSize ? `<span class="badge">Size: ${escapeHtml(roomSize)}</span>` : ''}
           <span class="badge">${visibleMembers.length} ${visibleMembers.length===1?'person':'people'}</span>
+          <button class="btn btn-danger btn-small" onclick="deleteRoom('${roomNo}')" title="Delete this room">Delete Room</button>
         </div>
       </div>
       <div class="members">`;
+
+    if(visibleMembers.length === 0){
+      html += `<p class="empty-msg">No one assigned to this room yet.</p>`;
+    }
 
     visibleMembers.forEach(m=>{
       html += `<div class="member-line">
@@ -835,8 +905,9 @@ function downloadRoomsPDF(){
   doc.text('Generated: ' + now.toLocaleDateString() + ' ' + now.toLocaleTimeString(), pageWidth / 2, y, { align: 'center' });
   y += 25;
 
-  // Group members by room
+  // Group members by room (seed with all known rooms so empty rooms are included)
   const roomsMap = {};
+  DATA.rooms.forEach(r=>{ roomsMap[r.roomNo] = []; });
   DATA.members.forEach(m=>{
     if(!roomsMap[m.roomNo]) roomsMap[m.roomNo] = [];
     roomsMap[m.roomNo].push(m);
@@ -856,7 +927,7 @@ function downloadRoomsPDF(){
 
   roomNos.forEach(roomNo=>{
     const members = roomsMap[roomNo];
-    const roomSize = members.find(m=>m.roomSize)?.roomSize || '';
+    const roomSize = getRoomSize(roomNo);
 
     // estimate space needed; if not enough, new page
     const neededHeight = 24 + members.length * (lineHeight * 2 + 4) + 10;
